@@ -53,6 +53,9 @@ def login():
 
     # Student response data
     student_data = {
+        "school_id": grade_section.school_id,
+        "school_code": grade_section.school.title,
+        "school_name": grade_section.school.code,
         "student_id": student.id,
         "first_name": student.first_name,
         "last_name": student.last_name,
