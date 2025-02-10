@@ -1,9 +1,9 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, jwt_required
-from models import AcademicYear, SchoolStudent, SchoolsGradesSections, TimeTable, TimeTableDetails, db, User, Student
+from models import AcademicYear, Event, SchoolStudent, SchoolsGradesSections, TimeTable, TimeTableDetails, db, User, Student
 from config import DevelopmentConfig, TestingConfig, ProductionConfig
 from werkzeug.security import check_password_hash
 from flask_cors import CORS
@@ -180,6 +180,27 @@ def get_timetable_details():
     ]
 
     return jsonify(response_data), 200
+
+@app.route('/api/events/<int:school_id>', methods=['GET'])
+def get_event_data(school_id):
+
+    events = Event.query.filter_by(school_id=school_id).order_by(getattr(Event,"date").desc()).all()
+    if not events:
+        return jsonify({"error": "No events available."}), 404
+    
+    response_data = [
+        {
+            "title": event.title,
+            "description": event.description,
+            "date": event.date,
+            "color":"Green" if event.date >= datetime.now() else "Red",
+
+        }
+        for event in events
+    ] 
+
+    return jsonify(response_data), 200
+
 
 if __name__ == '__main__':
     app.run(debug=True)

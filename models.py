@@ -468,4 +468,14 @@ class TimeTableDetails(db.Model):
         return (f"<TimeTableDetails(id={self.id}, day_name={self.day_name}, "
                 f"time_slot={self.time_slot}, subject_id={self.subject_id}, staff_id={self.staff_id})>")
 
-    
+class Event(db.Model):
+    __tablename__ = 'events'
+
+    id = db.Column(db.Integer, primary_key=True)
+    school_id = db.Column(db.Integer, nullable=False)
+    title = db.Column(db.String, nullable=False)
+    description = db.Column(db.String, nullable=True)
+    date = db.Column(db.DateTime, nullable=False)
+
+    def __repr__(self):
+        return f"<Event(id={self.id}, title={self.title})>" 
