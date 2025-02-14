@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, jwt_required
-from models import AcademicYear, Event, SchoolStudent, SchoolsGradesSections, TimeTable, TimeTableDetails, db, User, Student
+from models import AcademicYear, Attendance, Event, Grade, Role, School, SchoolStudent, SchoolsGradesSections, Section, TimeTable, TimeTableDetails, Transport, UserRole, db, User, Student
 from config import DevelopmentConfig, TestingConfig, ProductionConfig
 from werkzeug.security import check_password_hash
 from flask_cors import CORS
@@ -200,6 +200,102 @@ def get_event_data(school_id):
     ] 
 
     return jsonify(response_data), 200
+
+
+@app.route('/api/transports/<int:school_id>', methods=['GET'])
+def get_transport_data(school_id):
+
+    transports = Transport.query.filter_by(school_id=school_id).all()
+    if not transports:
+        return jsonify({"error": "No transports available."}), 404
+    
+    response_data = [
+        {
+            "driver_name": f"{transport.driver.first_name} {transport.driver.last_name}",
+            "driver_code": transport.driver_code,
+            "vehicle_number": transport.vehicle_number,
+            "route_number": transport.route_number,
+            "route_name": transport.route_name,
+            "vehicle_gps_device_id": transport.vehicle_gps_device_id,
+            "vehicle_tracking_url": transport.vehicle_tracking_url,
+            "in_charge_name":f"{transport.in_charge.first_name} {transport.in_charge.last_name}",            
+
+        }
+        for transport in transports
+    ] 
+
+    return jsonify(response_data), 200
+
+@app.route('/api/attendances/<int:student_id>', methods=['GET'])
+def get_attendance_data(student_id):
+
+    attendances = Attendance.query.filter_by(student_id=student_id).all()
+    if not attendances:
+        return jsonify({"error": "No attendance  details available."}), 404
+    
+    response_data = [
+        {
+            
+            "attendence_date": attendance.attendence_date,
+            "is_present_morning": attendance.is_present_morning,
+            "is_present_afternoon": attendance.is_present_afternoon,
+
+            "is_present_fullday":True if attendance.is_present_morning and  attendance.is_present_afternoon else False,
+            
+                
+
+        }
+        for attendance in attendances
+    ]
+    return jsonify(response_data), 200
+
+
+@app.route('/api/userbyid/<int:user_id>', methods=['GET'])
+def get_user_data_by_id(user_id):
+    
+    user = User.query.get(user_id)
+    roles = Role.query.join(UserRole, Role.id == UserRole.role_id).filter(UserRole.user_id == user_id).all()
+    role_list = [
+        {"role_name": role.role_name,
+          "role_type": role.role_type} 
+          for role in roles
+        ]
+    response_data = {
+        "username": user.username,        
+        "roles": role_list
+    }
+
+    return jsonify(response_data), 200
+
+@app.route('/api/user/<int:user_id>', methods=['GET'])
+def get_user_data(user_id):
+
+    # Retrieve user details
+    user =User.query.filter_by(id=user_id).first()
+    if not user:
+        return jsonify({"error": "No user details available for this user."}), 404
+
+    # Get school_student and grade/section details
+    user_roles = UserRole.query.filter_by(user_id=user.id).first()
+    
+
+    
+    # Student response data
+
+    
+    
+    user_data = [{
+       
+        
+        "user_id": user_roles.user_id,
+        "role_id": user_roles.role_id,
+    }
+    ]
+    # Create a token
+    token = create_access_token(identity=str(user.id))
+
+    return jsonify({"token": token, "user_data": user_data}), 200
+
 
 
 if __name__ == '__main__':
