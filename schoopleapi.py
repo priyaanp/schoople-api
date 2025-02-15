@@ -3,7 +3,7 @@ from flask import Flask, request, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, jwt_required
-from models import AcademicYear, Attendance, Event, Grade, Role, School, SchoolStudent, SchoolsGradesSections, Section, TimeTable, TimeTableDetails, Transport, UserRole, db, User, Student
+from models import AcademicYear, Attendance, Event, ExamSchedule, Grade, Role, School, SchoolStudent, SchoolsGradesSections, Section, Subject, TimeTable, TimeTableDetails, Transport, UserRole, db, User, Student
 from config import DevelopmentConfig, TestingConfig, ProductionConfig
 from werkzeug.security import check_password_hash
 from flask_cors import CORS
@@ -71,7 +71,9 @@ def login():
         "father_name": student.father_name,
         "mother_name": student.mother_name,
         "grade": grade,
+	    "grade_id": grade_section.grade_id,
         "section": section,
+	    "section_id": grade_section.section_id,
         "aadhar_number": student.aadhar_number,
         "permanent_address": student.permanent_address,
         "communication_address": student.communication_address,
@@ -130,7 +132,9 @@ def get_student_data(id):
         "father_name": student.father_name,
         "mother_name": student.mother_name,
         "grade": grade,
+	    "grade_id": grade_section.grade_id,
         "section": section,
+	    "section_id": grade_section.section_id,
         "aadhar_number": student.aadhar_number,
         "permanent_address": student.permanent_address,
         "communication_address": student.communication_address,
@@ -296,6 +300,48 @@ def get_user_data(user_id):
 
     return jsonify({"token": token, "user_data": user_data}), 200
 
+@app.route('/api/exam-schedules', methods=['GET'])
+def get_exam_schedules():
+    grade_id = request.args.get('grade_id')
+    
+    if not grade_id:
+        return jsonify({"error": "Grade ID is required"}), 400
+
+    try:
+        schedules = db.session.query(
+            ExamSchedule.id,
+            ExamSchedule.term,
+            ExamSchedule.exam_date,
+            Subject.title.label('subject'),
+            Grade.title.label('grade'),
+           
+        ).join(
+            Subject, ExamSchedule.subject_id == Subject.id
+        ).join(
+            Grade, ExamSchedule.grade_id == Grade.id
+        ).filter(
+            ExamSchedule.grade_id == grade_id
+        ).order_by(
+            ExamSchedule.exam_date.asc(),
+            ExamSchedule.term.asc()
+        ).all()
+
+        schedule_list = [
+            {
+                "id": sch.id,
+                "term": sch.term,
+                "exam_date": sch.exam_date,
+                "subject": sch.subject,
+                "grade": sch.grade,
+                
+            }
+            for sch in schedules
+        ]
+
+        return jsonify(schedule_list), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':

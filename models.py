@@ -479,3 +479,17 @@ class Event(db.Model):
 
     def __repr__(self):
         return f"<Event(id={self.id}, title={self.title})>" 
+class ExamSchedule(db.Model):
+    __tablename__ = 'exam_schedules'
+
+    id = db.Column(db.Integer, primary_key=True)
+    term = db.Column(db.String(50), nullable=False)
+    subject_id = db.Column(db.Integer, db.ForeignKey('subjects.id'), nullable=False)
+    grade_id = db.Column(db.Integer, db.ForeignKey('grades.id'), nullable=False)
+    exam_date = db.Column(db.Date, nullable=False)
+
+    subject = db.relationship('Subject', backref='exam_schedules')
+    grade = db.relationship('Grade', backref='exam_schedules')
+
+    def __repr__(self):
+        return f"<ExamSchedule(id={self.id}, term={self.term}, date={self.exam_date})>"     
