@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta
+import email
 from flask import Flask, request, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, jwt_required
-from models import AcademicYear, Attendance, Event, ExamSchedule, Grade, Role, School, SchoolStudent, SchoolsGradesSections, Section, Subject, TimeTable, TimeTableDetails, Transport, UserRole, db, User, Student
+from models import AcademicYear, Attendance, Event, ExamMarkDetails, ExamMarks, ExamSchedule, Grade, Role, School, SchoolStudent, SchoolsGradesSections, Section, Subject, TimeTable, TimeTableDetails, Transport, UserRole, db, User, Student
 from config import DevelopmentConfig, TestingConfig, ProductionConfig
 from werkzeug.security import check_password_hash
 from flask_cors import CORS
@@ -342,6 +343,34 @@ def get_exam_schedules():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+
+@app.route('/api/exam_mark_details', methods=['GET'])
+def get_exam_mark_details():
+    
+    student_id = request.args.get('student_id')
+    term = request.args.get('term')
+    
+    results = db.session.query(
+        ExamMarks.id, ExamMarks.term, ExamMarks.student_id, ExamMarks.subject_id, 
+        ExamMarkDetails.weightage, ExamMarkDetails.marks_obtained, ExamMarkDetails.marks_out_of,
+        Subject.title
+    ).join(ExamMarkDetails, ExamMarks.id == ExamMarkDetails.exam_mark_id).join(Subject, ExamMarks.subject_id == Subject.id).filter(ExamMarks.student_id == student_id).filter(ExamMarks.term == term).order_by(getattr(ExamMarks, "term").asc()).all()
+    
+    output = [
+        {
+            "term": record.term,
+            "subject_id": record.subject_id,
+            "subject_title": record.title,
+            "weightage": record.weightage,
+            "marks_obtained": record.marks_obtained,
+            "marks_out_of": record.marks_out_of
+        } for record in results
+    ]
+    
+    return jsonify(output)
+
+
 
 
 if __name__ == '__main__':
