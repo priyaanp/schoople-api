@@ -225,6 +225,8 @@ class Student(db.Model):
     relieving_date = db.Column(db.Date, nullable=True)
     relieving_comment = db.Column(db.String, nullable=True)
     status = db.Column(db.Integer, nullable=True)
+    nationality = db.Column(db.String, nullable=True)
+    gender = db.Column(db.String, nullable=True)
 
     # Relationships
     school = db.relationship('School', backref='students')  # Relates to the `schools` table
@@ -493,3 +495,70 @@ class ExamSchedule(db.Model):
 
     def __repr__(self):
         return f"<ExamSchedule(id={self.id}, term={self.term}, date={self.exam_date})>"     
+    
+class GeneralMessage(db.Model):
+    __tablename__ = 'general_message'
+
+    id = db.Column(db.Integer, primary_key=True)
+    school_id = db.Column(db.Integer, db.ForeignKey('schools.id'), nullable=False)
+    title = db.Column(db.String, nullable=False)
+    description = db.Column(db.String, nullable=False)
+    type = db.Column(db.Integer, nullable=False)
+
+    school = db.relationship('School', backref='general_message', lazy=True)
+
+    def __repr__(self):
+        return f"<Subject id={self.id}, title={self.title}, school_id={self.school_id}>"    
+    
+class FeeType(db.Model):
+    __tablename__ = 'fee_types'
+
+    id = db.Column(db.Integer, primary_key=True)
+    school_id = db.Column(db.Integer, db.ForeignKey('schools.id'), nullable=False)
+    title = db.Column(db.String, nullable=False)
+    status = db.Column(db.Integer, nullable=False)
+
+    school = db.relationship('School', backref='fee_types')
+
+    def __repr__(self):
+        return f"<FeeType(id={self.id}, title={self.title})>"
+
+
+class SchoolFee(db.Model):
+    __tablename__ = 'school_fee'
+
+    id = db.Column(db.Integer, primary_key=True)
+    fee_type_id = db.Column(db.Integer, db.ForeignKey('fee_types.id'), nullable=False)
+    payment_type = db.Column(db.Integer, nullable=False)
+    academic_year_id = db.Column(db.Integer, db.ForeignKey('academic_years.id'), nullable=False)
+    fee_amount = db.Column(db.Integer, nullable=False)
+    fee_payment_last_date_with_deduction = db.Column(db.Date, nullable=True)
+    discount_percentage = db.Column(db.Integer, nullable=True)
+    fee_payment_last_date_without_deduction = db.Column(db.Date, nullable=True)
+    fee_payment_last_date_with_fine = db.Column(db.Date, nullable=True)
+    fine_percentage = db.Column(db.Integer, nullable=True)
+
+    fee_type = db.relationship('FeeType', backref='school_fees')
+    academic_year = db.relationship('AcademicYear', backref='school_fees')
+
+    def __repr__(self):
+        return f"<SchoolFee(id={self.id}, fee_type_id={self.fee_type_id}, fee_amount={self.fee_amount})>"
+
+
+class Fee(db.Model):
+    __tablename__ = 'fees'
+
+    id = db.Column(db.Integer, primary_key=True)
+    fee_type_id = db.Column(db.Integer, db.ForeignKey('fee_types.id'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
+    actual_fee = db.Column(db.Integer, nullable=False)
+    discount_percentage = db.Column(db.Integer, nullable=True)
+    fine_percentage = db.Column(db.Integer, nullable=True)
+    paid_amount = db.Column(db.Integer, nullable=False)
+    payment_date = db.Column(db.Date, nullable=True)
+
+    fee_type = db.relationship('FeeType', backref='fees')
+    student = db.relationship('Student', backref='fees')
+
+    def __repr__(self):
+        return f"<Fee(id={self.id}, student_id={self.student_id}, paid_amount={self.paid_amount})>"    

@@ -1,3 +1,6 @@
 flask
 flask-bcrypt
 flask-jwt-extended
+
+ALTER TABLE STUDENTS ADD COLUMN nationality varchar(100)
+ALTER TABLE STUDENTS ADD COLUMN gender varchar(25)

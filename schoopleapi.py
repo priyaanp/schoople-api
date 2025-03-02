@@ -1,10 +1,13 @@
 from datetime import datetime, timedelta
 import email
+from email import message
+from pyexpat.errors import messages
+from unittest import result
 from flask import Flask, request, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, jwt_required
-from models import AcademicYear, Attendance, Event, ExamMarkDetails, ExamMarks, ExamSchedule, Grade, Role, School, SchoolStudent, SchoolsGradesSections, Section, Subject, TimeTable, TimeTableDetails, Transport, UserRole, db, User, Student
+from models import AcademicYear, Attendance, Event, ExamMarkDetails, ExamMarks, ExamSchedule, Fee, FeeType, GeneralMessage, Grade, Role, School, SchoolStudent, SchoolsGradesSections, Section, Subject, TimeTable, TimeTableDetails, Transport, UserRole, db, User, Student
 from config import DevelopmentConfig, TestingConfig, ProductionConfig
 from werkzeug.security import check_password_hash
 from flask_cors import CORS
@@ -84,6 +87,8 @@ def login():
         "annual_income": student.annual_income,
         "blood_group": student.blood_group,
         "status": student.status,
+        "nationality": student.nationality,
+        "gender": student.gender,
     }
 
     # Create a token
@@ -122,20 +127,22 @@ def get_student_data(id):
         "school_name": grade_section.school.code,
         "school_grade_section_id": grade_section.id,
         "active_academic_year_id":active_academic_year.id,
+	"active_academic_year_start":active_academic_year.start_date.strftime('%Y'),
+	"active_academic_year_end":active_academic_year.end_date.strftime('%Y'),
         "student_id": student.id,
         "first_name": student.first_name,
         "last_name": student.last_name,
         "middle_name": student.middle_name,
-        "dob": student.dob,
+        "dob": student.dob.strftime('%d-%m-%Y'),
         "photo": student.photo,
         "admission_number": student.admission_number,
         "student_code": student.student_code,
         "father_name": student.father_name,
         "mother_name": student.mother_name,
         "grade": grade,
-	    "grade_id": grade_section.grade_id,
+	"grade_id": grade_section.grade_id,
         "section": section,
-	    "section_id": grade_section.section_id,
+	"section_id": grade_section.section_id,
         "aadhar_number": student.aadhar_number,
         "permanent_address": student.permanent_address,
         "communication_address": student.communication_address,
@@ -145,6 +152,10 @@ def get_student_data(id):
         "annual_income": student.annual_income,
         "blood_group": student.blood_group,
         "status": student.status,
+        "nationality": student.nationality,
+        "gender": student.gender,  
+        "father_mobile": student.father_mobile,
+        "mother_mobile": student.mother_mobile,        
     }
 
     return jsonify({"student_data": student_data}), 200
@@ -370,6 +381,67 @@ def get_exam_mark_details():
     
     return jsonify(output)
 
+
+
+@app.route('/api/get_messages', methods=['GET'])
+def get_messges():
+    school_id = request.args.get('school_id')
+    message_type = request.args.get('type')
+    if not school_id or not message_type:
+        return jsonify({"error": "Missing required parameters"}), 404
+        
+    
+    messages =  GeneralMessage.query.filter_by(school_id =school_id,type=message_type).first()
+    result = {  
+                "id" : messages.id,
+                "school_id" : messages.school_id,
+                "title" : messages.title,
+                "description" : messages.description
+            }
+        
+             
+
+    return jsonify({"result": result}), 200
+
+@app.route('/api/fees', methods=['GET'])
+def get_fee_details():
+    
+    student_id = request.args.get('student_id')
+        
+    fees = db.session.query(
+        Fee.id,
+        Fee.student_id,
+        Fee.actual_fee,
+        Fee.discount_percentage,
+        Fee.fine_percentage,
+        Fee.paid_amount,
+        Fee.payment_date,
+        FeeType.title.label("fee_type"),
+        FeeType.school_id
+    ).join(FeeType, Fee.fee_type_id == FeeType.id).filter(Fee.student_id == student_id).all()
+
+    if not fees:
+        return jsonify({"message": "No fee records found"}), 404
+
+    fee_list = [
+        {
+            "id": fee.id,
+            "student_id": fee.student_id,
+            "fee_type": fee.fee_type,
+            "school_id": fee.school_id,
+            "actual_fee": fee.actual_fee,
+            "discount_percentage": fee.discount_percentage,
+            "fine_percentage": fee.fine_percentage,
+            "paid_amount": fee.paid_amount,
+            "payment_date": fee.payment_date.strftime("%Y-%m-%d") if fee.payment_date else None
+        }
+        for fee in fees
+    ]
+
+    return jsonify(fee_list)
+
+
+    
 
 
 
